@@ -15,3 +15,22 @@ fn test_mutable_variable() {
 
     println!("Hello {}", name);
 }
+
+#[test]
+fn static_typing() {
+    /// di rust bersifat static typing jadi string. tidak boleh di assign ke integer
+    let mut name = "Aditya";
+    println!("Hello {}", name);
+
+    name = "Adi";
+    println!("Hello {}", name);
+}
+
+#[test]
+fn shadowing() {
+    let name = "Aditya";
+    println!("Hello {}", name);
+
+    let name = 10;
+    println!("Hello {}", name);
+}
