@@ -1,11 +1,111 @@
 mod rust_dasar;
+use axum::{extract::State, routing::get, serve, Router};
+use clap::{Parser, Subcommand};
+use std::{fmt::format, result, sync::Arc, thread, time::Duration};
+use tokio::{net::TcpListener, sync::Notify};
 
-use std::{fmt::format, result, sync::Arc, thread};
+/*
+buat command line interface parsesr
+menggunakan package https://crates.io/crates/clap
+*/
+// #[derive(Parser)]
+// #[command(name = "Persegi", version, about = "Hitung luas persegi", long_about = None)]
+/*
 
-fn main() {
-    println!("Hello, world!");
+short: Mengizinkan opsi pendek, seperti -s.
 
-    println!("Hello Adit");
+long: Mengizinkan opsi panjang, seperti --sisi.
+
+*/
+
+// struct Args {
+//     /// Panjang sisi persegi
+//     #[arg(short, long)]
+//     sisi: u32,
+// }
+
+#[derive(Parser)]
+struct App {
+    #[command(subcommand)]
+    command: Command,
+}
+
+#[derive(Subcommand)]
+pub enum Command {
+    Worker,
+    Run,
+}
+
+pub struct AppState {
+    notify: Arc<Notify>,
+}
+#[tokio::main]
+async fn main() {
+    // let args = Args::parse();
+
+    // let luas = args.sisi * args.sisi;
+    // println!("Luas persegi dengan sisi {} adalah {}", args.sisi, luas);
+
+    let args = App::parse();
+    let notify = Arc::new(Notify::new());
+    let state = Arc::new(AppState {
+        notify: notify.clone(),
+    });
+    match args.command {
+        Command::Worker => {
+            // Clone untuk worker
+            let notify_worker = notify.clone();
+
+            // Worker async task
+            tokio::spawn(async move {
+                loop {
+                    println!("🔄 Worker menunggu sinyal...");
+                    notify_worker.notified().await; // Tunggu sinyal
+                    println!("✅ Worker menerima sinyal dan mulai bekerja...");
+                    // Simulasikan pekerjaan
+                    tokio::time::sleep(Duration::from_secs(2)).await;
+                    println!("🏁 Pekerjaan selesai.");
+                }
+            });
+            println!("🚀 Worker berjalan. Tekan Ctrl+C untuk keluar.");
+            // Tahan agar program tetap hidup
+            tokio::signal::ctrl_c().await.unwrap();
+            println!("🛑 Program dihentikan.");
+        }
+        Command::Run => {
+            // untuk worker
+            let notify_worker = notify.clone();
+
+            // Worker async task
+            tokio::spawn(async move {
+                loop {
+                    println!("🔄 Worker menunggu sinyal...");
+                    notify_worker.notified().await; // Tunggu sinyal
+                    println!("✅ Worker menerima sinyal dan mulai bekerja...");
+                    // Simulasikan pekerjaan
+                    tokio::time::sleep(Duration::from_secs(2)).await;
+                    println!("🏁 Pekerjaan selesai.");
+                }
+                // println!("🚀 Worker berjalan. Tekan Ctrl+C untuk keluar.");
+                // Tahan agar program tetap hidup
+                // tokio::signal::ctrl_c().await.unwrap();
+                // println!("🛑 Program dihentikan.");
+            });
+
+            let app_url = "127.0.0.1:3000";
+            let app = Router::new()
+                .route("/test", get(test_notify))
+                .with_state(state);
+            let listener = TcpListener::bind(app_url.clone()).await.unwrap();
+            println!("Listening on {:}", app_url.clone());
+            serve(listener, app).await.unwrap();
+        }
+    }
+}
+
+pub async fn test_notify(State(state): State<Arc<AppState>>) {
+    let notify = &state.notify;
+    notify.notify_one();
 }
 
 #[test]
