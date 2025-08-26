@@ -6,3 +6,4 @@ pub mod hello_world;
 pub mod tokio_sync;
 pub mod tuple;
 pub mod variable;
+pub mod variable_scope;
